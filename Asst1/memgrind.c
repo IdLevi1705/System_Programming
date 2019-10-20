@@ -64,12 +64,10 @@ void test_B() {
     start_t = clock();
 
     for (j = 0; j < 3; j++) {
-        //  printf("+++++++++++++++++\n");
         for (i = 0; i < 50; i++) {
             ptr[i] = malloc(1);
             mallocCnt++;
         }
-        //   printf("----------------\n");
         for (i = 0; i < 50; i++) {
             free(ptr[i]);
             freeCnt++;

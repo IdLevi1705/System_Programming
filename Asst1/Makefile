@@ -8,7 +8,7 @@ mymalloc.o: mymalloc.c mymalloc.h
 	gcc -c -g mymalloc.c
 
 archive:
-	tar czf asst1.tar *.c *.h makefile
+	tar czf asst1.tar *.c *.h Makefile
 
 clean:
 	rm memgrind memgrind.o mymalloc.o

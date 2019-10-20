@@ -22,9 +22,6 @@
 // max available memblock size is 0x7fff (15 bit unsigned integer)
 #define MEM_BLOCK_SIZE 4096    
 
-static char mymemblock[MEM_BLOCK_SIZE];
-static int initialized = 0;
-
 struct Meta
 {
     unsigned short available_size  : 15;
@@ -35,6 +32,12 @@ void *mymalloc(size_t, char *, int);
 void myfree(void *, char *, int);
 
 int integrithy_check();
+//
+//int rand(void);
+//
+//int rand_r(unsigned int *seedp);
+//
+//void srand(unsigned int seed);
 
 #endif /* MYMALLOC_H */
 

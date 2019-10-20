@@ -4,9 +4,14 @@
  *            Idan Levi
  */
 
-#include <stdlib.h>
+
 #include <stdio.h>
+#include <stdlib.h>
 #include "mymalloc.h"
+
+static char mymemblock[MEM_BLOCK_SIZE];
+static int initialized = 0;
+
 
 void *mymalloc(size_t requested_size, char * file, int line) {
 

@@ -1,14 +1,13 @@
-all: memgrind.o mymalloc.o
-	gcc memgrind.o mymalloc.o mymalloc.h -g -o memgrind
+CC=gcc 
+CFLAGS=-Wall
 
-memgrind.o: memgrind.c mymalloc.h
-	gcc -c -g memgrind.c
-
+all: mymalloc
+mymalloc: mymalloc.o memgrind.o
 mymalloc.o: mymalloc.c mymalloc.h
-	gcc -c -g mymalloc.c
+memgrind: memgrind.o mymalloc.h
 
-archive:
-	tar czf asst1.tar *.c *.h Makefile
 
 clean:
-	rm memgrind memgrind.o mymalloc.o
+	rm -f *.o *.txt mymalloc
+run: mymalloc
+	./mymalloc

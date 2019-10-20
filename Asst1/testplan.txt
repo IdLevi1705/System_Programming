@@ -1,0 +1,21 @@
+﻿Idan Levi (il177)
+Alex Varshavsky (av653)
+
+In this file we describe the extra two workloads.
+
+Test E:
+This test repeats the malloc() operation 50 times. Each time it picks a random number between 85 - 150. 
+This test ensures that we will run out of memory because the lowest bound of the random will still give us a bigger memory size than what we have.
+Total requested memory, depending on the size chosen by the random will be between 85*50 = 4250 and 150*50 = 7500 which are all bigger than the 4096 that we have. 
+After allocating as many times as it can, it will free all the allocated pointers. 
+In this test it will make sense that it will free less than 50 times. 
+The purpose of Test E is to check that our mymalloc() implementation consistently catches errors 
+and lets us know that we are requesting for more space that our memory block can provide. 
+
+Test F:
+This tests uses mymalloc() only once and it tries to allocate a randomly generated size between 0 and 8000. 
+After that it tries to free the pointer 10 times, ensuring that it will try to free an invalid pointer 9 or 10 times.
+The purpose of this test is to check that:
+1. mymalloc() consistently allocating only requests of size smaller than the available space.
+2. mymalloc() consistently catches an error if we try to allocate size 0.
+3. myfree() will not free a pointer if it is already set to FREE.

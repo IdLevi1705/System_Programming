@@ -4,7 +4,7 @@
  *            Idan Levi
  */
 
-
+#include <stdlib.h>
 #include <stdio.h>
 #include "mymalloc.h"
 
@@ -77,7 +77,7 @@ void myfree(void *ptr, char * file, int line) {
 
     //new checker ptr to find all the valid pointers
     struct Meta *checker_ptr = (struct Meta*) mymemblock;
-    while (checker_ptr <= (void *) (mymemblock + MEM_BLOCK_SIZE - 1)) {
+    while (checker_ptr <= (struct Meta *) (mymemblock + MEM_BLOCK_SIZE - 1)) {
 
         //Checking if the requested ptr is matching any of the valid ptrs
         if ((ptr - sizeof (struct Meta)) != checker_ptr) {

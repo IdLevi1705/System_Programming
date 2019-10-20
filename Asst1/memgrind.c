@@ -4,7 +4,7 @@
  *            Idan Levi
  */
 
-
+#include <stdlib.h>
 #include <stdio.h>
 #include "mymalloc.h"
 #include <time.h>
@@ -247,7 +247,9 @@ int main(int argc, char** argv) {
 
 
     // Runs test A-F. Repeats RUNS times.
-    for (int i = 0; i < RUNS; i++) {
+	int i;
+
+    for (i = 0; i < RUNS; i++) {
         printf("\n****************************************************************************\n");
         printf("****************************** Running test A ******************************\n");
         printf("****************************************************************************\n\n");

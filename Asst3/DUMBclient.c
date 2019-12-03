@@ -1,3 +1,23 @@
+/*
+filename server_ipaddress portno
+
+argv[0] filename
+argv[1] server_ipaddress
+argv[2] portno
+*/
+
+
+/*
+TASKS To DO:
+1. add errors.
+2. create multithreads for new massages/ boxes.
+3. save massagases in queue.
+4. operate the queue according to the user prompts.
+
+*/
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

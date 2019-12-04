@@ -12,5 +12,3 @@ clean:
 
 
 all: MS MC
-
-j

@@ -19,47 +19,38 @@ void error(const char *masg){
   perror(masg);
   exit(0);
 }
+
 char *parse_read(char *user_command){
 
-  printf("user_command->   %s\n", user_command);
   int string_length = strlen(user_command);
   char *x = (char *)malloc(sizeof(char) * string_length);
   strncpy(x, user_command, string_length-1);
 
-
-
     if (strcmp("quit", x) == 0){
-      printf("I am here - > GDBY");
       return "GDBY";
   }
 
   if (strcmp(x, "create") == 0){
-    printf("I am here - > CREAT");
      return "CREAT";
   }
 
   if (strcmp(x, "delete") == 0){
-    printf("I am here - > DELBX");
     return "DELBX";
   }
 
   if (strcmp(x, "open") == 0){
-    printf("I am here - > OPNBX");
     return "OPNBX";
   }
 
   if (strcmp(x, "close") == 0){
-    printf("I am here - > CLSBX");
     return "CLSBX";
   }
 
   if (strcmp(x, "next") == 0){
-    printf("I am here - > NXTMG");
     return "NXTMG";
   }
 
   if (strcmp(x, "put") == 0){
-    printf("I am here - > PUTMG");
     return "PUTMG";
   }
 
@@ -68,7 +59,7 @@ char *parse_read(char *user_command){
     //call function print manue..
     print_help_menu();
   }
-
+  free(x);
   return "That is not a command, for a command list enter 'help'.";
 }
 
@@ -125,8 +116,6 @@ int main(int argc, char *argv[]) {
     bzero(buffer, 255);
     char *fg = fgets(buffer, 255, stdin);
     char *send_command_to_server = parse_read(fg);
-    printf("FG - strlen - > > %lu\n", strlen(fg));
-    // printf("Command-> %s\n", send_command_to_server);
     //send the massage to the server..
     n = write(sockfd, send_command_to_server, strlen(send_command_to_server));
 

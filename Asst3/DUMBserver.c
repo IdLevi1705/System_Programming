@@ -26,12 +26,33 @@ TASKS To DO:
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <pthread.h>
 
+#define MAX_CONNECTIONS 8
 
 void error(const char *masg){
 
   perror(masg);
   exit(1);
+}
+
+// void *work_procces(
+//
+//   return NULL;
+// )
+
+void parse_client_commands(char *client_command, int arguments){
+
+  int x = strlen(client_command);
+  char *str_command = (char *)malloc(sizeof(char) * x);
+  strncpy(str_command, client_command, x-1);
+
+  if (strcmp(str_command, "CREAT") == 0 || strcmp(str_command, "OPNBX") == 0 || strcmp(str_command, "PUTMG") == 0 ||
+  strcmp(str_command, "DELBX") == 0 || strcmp(str_command, "CLSBX") == 0){
+
+  }
+
+
 }
 
 int main(int argc, char const *argv[]) {
@@ -63,7 +84,7 @@ int main(int argc, char const *argv[]) {
   error("Binding Failed");
   }
 
-  listen(sockfd, 5);
+  listen(sockfd, MAX_CONNECTIONS);
   clilen = sizeof(cli_addr);
 
   newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
@@ -71,9 +92,14 @@ int main(int argc, char const *argv[]) {
   if(newsockfd < 0){
     error("Error on accept!");
   }
+  //create a new threat here
+  pthread_t newthread;
 
 
   while(1){
+    // crete a new thread and pass the chat function with the client.
+    // pthread_create(&newthread, NULL, work_procces, NULL);
+
     bzero(buffer, 255);
     n = read(newsockfd, buffer, 255);
     if(n < 0){

@@ -21,14 +21,14 @@ void error(const char *masg){
   exit(0);
 }
 
-void parse_client_commands(char *client_command){
-  printf("Entered parse command function...");
-  int x = strlen(client_command);
-  char *str_command = (char *)malloc(sizeof(char) * x);
-  strncpy(str_command, client_command, x-1);
-
-  
-}
+// void parse_client_commands(char *client_command){
+//   printf("Entered parse command function...");
+//   int x = strlen(client_command);
+//   char *str_command = (char *)malloc(sizeof(char) * x);
+//   strncpy(str_command, client_command, x-1);
+//
+//
+// }
 
 char *parse_read(char *user_command){
 
@@ -137,9 +137,21 @@ int main(int argc, char *argv[]) {
   //add trhee times try -> if no one takes the phone -> discconect and exit.
   if(connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
     error("Connection Failed");
+  } else {
+    printf("\033[0;32m");
+    printf("Server: connection successful\n");
+    printf("\033[0m");
   }
-  printf("Server: connection successful\n");
 
+  bzero(buffer, 255);
+  char *fg = fgets(buffer, 255, stdin);
+  char *send_command_to_server = parse_read(fg);
+  if (strcmp("HELLO", send_command_to_server) != 0){
+    printf("Fail to connect initilize the server, please try again..");
+    return 0;
+  }
+
+  //talk to the server untill user types 'close'
   while(1){
     //clean buffer
     bzero(buffer, 255);

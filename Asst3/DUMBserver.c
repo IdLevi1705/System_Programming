@@ -27,8 +27,10 @@ TASKS To DO:
 #include <netinet/in.h>
 #include <netdb.h>
 #include <pthread.h>
+#include <ctype.h>
 
 #define MAX_CONNECTIONS 8
+
 
 void error(const char *masg){
 
@@ -36,24 +38,32 @@ void error(const char *masg){
   exit(1);
 }
 
-// void *work_procces(
-//
-//   return NULL;
-// )
+int parse_command(char *instruction){
 
-void parse_client_commands(char *client_command, int arguments){
-
-  int x = strlen(client_command);
-  char *str_command = (char *)malloc(sizeof(char) * x);
-  strncpy(str_command, client_command, x-1);
-
-  if (strcmp(str_command, "CREAT") == 0 || strcmp(str_command, "OPNBX") == 0 || strcmp(str_command, "PUTMG") == 0 ||
-  strcmp(str_command, "DELBX") == 0 || strcmp(str_command, "CLSBX") == 0){
-
+  //MAX char for command is 5+1.
+  char *command = (char *)malloc(sizeof(char) * 6);
+  //start iterate from instruction string.
+  int x = strlen(instruction);
+  int i;
+  for (i = 0; i < x ; i++){
+    if ( (isalpha(instruction[i]) == 0) && (isupper(instruction[i]) == 0) )   {
+      break;
+    }
+    if (instruction[i] == ' '){
+      break;
+    }
+    command[i] = instruction[i];
   }
 
 
+  if (strcmp("FAIL", command) == 0){
+    printf("That is not a command, please try 'help' to discover more commands.");
+  }
+
+  // printf("COMMAND ->%s\n", command);
+  return 0;
 }
+
 
 int main(int argc, char const *argv[]) {
 
@@ -105,7 +115,7 @@ int main(int argc, char const *argv[]) {
     if(n < 0){
         error("Error on reading");
       }
-
+    parse_command(buffer);
     //this need to be changed
     printf("Client : %s\n", buffer);
     bzero(buffer, 255);

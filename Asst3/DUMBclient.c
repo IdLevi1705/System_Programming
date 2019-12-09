@@ -7,11 +7,12 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <ctype.h>
 
 void error(const char *masg);
 void print_help_menu();
 char *parse_read(char *user_command);
-
+void parse_client_commands(char *client_command);
 
 
 void error(const char *masg){
@@ -20,53 +21,80 @@ void error(const char *masg){
   exit(0);
 }
 
+void parse_client_commands(char *client_command){
+  printf("Entered parse command function...");
+  int x = strlen(client_command);
+  char *str_command = (char *)malloc(sizeof(char) * x);
+  strncpy(str_command, client_command, x-1);
+
+  
+}
+
 char *parse_read(char *user_command){
 
-  int string_length = strlen(user_command);
-  char *x = (char *)malloc(sizeof(char) * string_length);
-  strncpy(x, user_command, string_length-1);
+  //MAX char for command is 6+1.
+  char *command = (char *)malloc(sizeof(char) * 7);
+  //start iterate from instruction string.
+  int x = strlen(user_command);
+  int i;
+  for (i = 0; i < x ; i++){
+    if ( (isalpha(user_command[i]) == 0) && (isupper(user_command[i]) == 0) )   {
+      break;
+    }
+    if (user_command[i] == ' '){
+      break;
+    }
+    command[i] = user_command[i];
+  }
 
-    if (strcmp("quit", x) == 0){
+
+  if (strcmp("hello", command) == 0){
+    return "HELLO";
+  }
+
+    if (strcmp("quit", command) == 0){
       return "GDBY";
   }
 
-  if (strcmp(x, "create") == 0){
+  if (strcmp("create", command) == 0){
      return "CREAT";
   }
 
-  if (strcmp(x, "delete") == 0){
+  if (strcmp("delete", command) == 0){
     return "DELBX";
   }
 
-  if (strcmp(x, "open") == 0){
+  if (strcmp("open", command) == 0){
+    printf("open, which message box?\n");
     return "OPNBX";
   }
 
-  if (strcmp(x, "close") == 0){
+  if (strcmp("close", command) == 0){
     return "CLSBX";
   }
 
-  if (strcmp(x, "next") == 0){
+  if (strcmp("next", command) == 0){
     return "NXTMG";
   }
 
-  if (strcmp(x, "put") == 0){
+  if (strcmp("put", command) == 0){
     return "PUTMG";
   }
 
-  if (strcmp(x, "help") == 0){
+  if (strcmp("help", command) == 0){
     printf("I am here - > HELP");
     //call function print manue..
     print_help_menu();
+    return "HELP";
   }
-  free(x);
-  return "That is not a command, for a command list enter 'help'.";
+  return "FAIL";
 }
 
 void print_help_menu(){
 
   printf("\t----MAIN MENU-----\n");
   printf("\tPlease use one of the following commands:\n");
+  printf("\t0. hello - To start interaction with the server\n");
   printf("\t1. quit - stop session and exit the program\n");
   printf("\t2. create - Create new massage box on the server\n");
   printf("\t3. delete - will exit the program\n");
@@ -83,6 +111,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in serv_addr;
   struct hostent *server;
   char buffer[255];
+  char argument[20];
 
 
   if(argc < 3){
@@ -116,7 +145,8 @@ int main(int argc, char *argv[]) {
     bzero(buffer, 255);
     char *fg = fgets(buffer, 255, stdin);
     char *send_command_to_server = parse_read(fg);
-    //send the massage to the server..
+
+
     n = write(sockfd, send_command_to_server, strlen(send_command_to_server));
 
     if(n < 0){

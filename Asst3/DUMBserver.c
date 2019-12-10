@@ -10,8 +10,8 @@ argv[2] portno
 /*
 TASKS To DO:
 1. add errors.
-2. create multithreads for new massages/ boxes.
-3. save massagases in queue.
+2. create multi-threads for new massages/ boxes.
+3. save messages in queue.
 4. operate the queue according to the user prompts.
 
 */

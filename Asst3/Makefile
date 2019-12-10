@@ -1,7 +1,7 @@
-MS: DUMBserver.c
+server: DUMBserver.c
 	gcc -o server DUMBserver.c
 
-MC: DUMBclient.c
+client: DUMBclient.c
 	gcc -o client DUMBclient.c
 
 
@@ -11,4 +11,4 @@ clean:
 	rm -f server client *.o
 
 
-all: MS MC
+all: server client

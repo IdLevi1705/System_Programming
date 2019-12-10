@@ -26,6 +26,7 @@ TASKS To DO:
 #include <netdb.h>
 #include <pthread.h>
 #include <ctype.h>
+#include <time.h>
 
 #define MAX_CONNECTIONS 16
 
@@ -34,6 +35,25 @@ void error(const char *masg){
 
   perror(masg);
   exit(1);
+}
+void ev_pro(char *cur_ev, int id){
+  // The server should report all successful events to standard out and all
+  // errors to standard error by listing the; timestamp, client identity,
+  // the successful command or the error incurred. Data should not be output.
+
+  time_t cur_time = time(NULL);
+  char *time_str = ctime(&cur_time);
+  time_str[strlen(time_str)-1] = '\0';
+
+  printf("%s   %d   %s\n", time_str, id, cur_ev);
+}
+
+void err_pro(char *err, int id){
+  time_t cur_time = time(NULL);
+  char *time_str = ctime(&cur_time);
+  time_str[strlen(time_str)-1] = '\0';
+
+  printf("%s   %d   %s\n", time_str, id, err);
 }
 
 int parse_command(char *instruction){
@@ -115,7 +135,7 @@ int main(int argc, char const *argv[]) {
   if(bind(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0){
   error("Binding Failed");
   }
-  // open foe connections.
+  // open for connections.
   listen(sockfd, MAX_CONNECTIONS);
   clilen = sizeof(cli_addr);
   // "pick up the phone" and start interaction with user.
@@ -126,20 +146,26 @@ int main(int argc, char const *argv[]) {
   }
   //create a new threat here.
   // this should be give for every user and every connection since we want all user to interact with the serer at the same time instead of waiting on line.
-  pthread_t newthread;
+  pthread_t newthreadID;
 
 
   while(1){
     // crete a new thread and pass the DUMB function with the client.
     // We need to create main function that work with the user - it will be our main function for every thread.
     // once that function ends we exit the program per thread.
-    // pthread_create(&newthread, NULL, work_procces, NULL);
 
-    bzero(buffer, 255);
-    n = read(newsockfd, buffer, 255);
-    if(n < 0){
-        error("Error on reading");
-      }
+    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+    //Here we need to creata a data structure that holds all entered clients and put them on line.
+    // When we do open we will look here.
+    // I think it should be QUEUE.
+
+
+    // pthread_create(&newthread, NULL, &handle_client, NULL); <- This function is not ready yet thats why it is marked as command.
+    // bzero(buffer, 255);
+    // n = read(newsockfd, buffer, 255);
+    // if(n < 0){
+    //     error("Error on reading");
+    //   }
     //this will return a number for a specific case, then take it to the assigned action.
     // int num_act = parse_command(buffer);
 
@@ -156,10 +182,11 @@ int main(int argc, char const *argv[]) {
       error("Error on writing");
     }
 
-    int i = strncmp("Bye", buffer, 3);
-    if (i == 0){
-      break;
-      }
+    // No need to terminate the server since the assignemnt asked for ctrl-c to shut down the server.
+    // int i = strncmp("Bye", buffer, 3);
+    // if (i == 0){
+    //   break;
+    //   }
     }
 
     close(newsockfd);

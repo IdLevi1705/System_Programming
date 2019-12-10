@@ -107,7 +107,7 @@ void print_help_menu(){
 
 int main(int argc, char *argv[]) {
 
-  int sockfd, portno, n, counter = 0;
+  int sockfd, portno, n, counter = 0, con;
   struct sockaddr_in serv_addr;
   struct hostent *server;
   char buffer[255];
@@ -134,8 +134,14 @@ int main(int argc, char *argv[]) {
   serv_addr.sin_family = AF_INET;
   bcopy((char *) server -> h_addr, (char *) &serv_addr.sin_addr.s_addr, server->h_length);
   serv_addr.sin_port = htons(portno);
-  //add trhee times try -> if no one takes the phone -> discconect and exit.
-  if(connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
+
+  con = connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+
+  bzero(buffer, 255);
+  char *fg = fgets(buffer, 255, stdin);
+  char *send_command_to_server = parse_read(fg);
+
+  if((con < 0) || (strcmp("HELLO", send_command_to_server) != 0)) {
     error("Connection Failed");
   } else {
     printf("\033[0;32m");
@@ -143,13 +149,8 @@ int main(int argc, char *argv[]) {
     printf("\033[0m");
   }
 
-  bzero(buffer, 255);
-  char *fg = fgets(buffer, 255, stdin);
-  char *send_command_to_server = parse_read(fg);
-  if (strcmp("HELLO", send_command_to_server) != 0){
-    printf("Fail to connect initilize the server, please try again..");
-    return 0;
-  }
+
+
 
   //talk to the server untill user types 'close'
   while(1){

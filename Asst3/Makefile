@@ -1,8 +1,8 @@
 server: DUMBserver.c
-	gcc -o server DUMBserver.c
+	gcc -m32 -o server DUMBserver.c -I. -lm -ldl -pthread
 
 client: DUMBclient.c
-	gcc -o client DUMBclient.c
+	gcc -m32 -o client DUMBclient.c -I. -lm -ldl -pthread 
 
 
 .PHONY: clean

@@ -455,9 +455,9 @@ void HELLO_handler(client_context_t *client_ctx, char *instruction, size_t len)
     char msg_buff[128];
     char buffer[SOCKET_BUFF_SIZE + 1];
     bzero(buffer, 255);
-    int n = time_string(buffer);
-    sprintf(buffer + n, "HELLO from DUMP Server by Alex and Idan!!!!\n Enjoy your session\n");
-    n = write(client_ctx->socket_fd, buffer, strlen(buffer));
+    //int n = time_string(buffer);
+    sprintf(buffer, "HELLO DUMBv0 ready!\n");
+    int n = write(client_ctx->socket_fd, buffer, strlen(buffer));
 
     if (n < 0)
     {

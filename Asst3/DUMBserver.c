@@ -362,6 +362,7 @@ void NXTMG_handler(client_context_t *client_ctx, char *instruction, size_t len);
 void PUTMG_handler(client_context_t *client_ctx, char *instruction, size_t len);
 void DELBX_handler(client_context_t *client_ctx, char *instruction, size_t len);
 void CLSBX_handler(client_context_t *client_ctx, char *instruction, size_t len);
+void Error_handler(client_context_t *client_ctx, char *instruction, size_t len);
 
 int parse_command(client_context_t *client_ctx, char *instruction, size_t len)
 {

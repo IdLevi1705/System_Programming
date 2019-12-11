@@ -182,6 +182,28 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     }
     else if(strcmp("create", user_command) == 0)
     {
+        char buffer[READ_BUFFER_LEN];
+        printf("Okay, create which message box?\n");
+        do
+        {
+            printf("create:> ");
+            char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
+            if(*user_cmd == '\n')
+            {
+                continue;
+            }
+            cmd_args = user_cmd;
+            char *ending_space = strchr(cmd_args, '\n');
+            if(ending_space)
+                *ending_space = 0;
+            int len = strlen(user_cmd);
+            if(5 > len || len > 25)
+            {
+                printf("[%u] Error: Command was unsuccessful, MB len should be 5 to 25 letter long. Actual: %d\n", __LINE__, len);
+                return USR_CMD_STATUS_BAD_CMD;
+            }
+            break;
+        } while(1);
         command->opcode = DUMB_CMD_CREAT;
         DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "CREAT");
@@ -190,6 +212,28 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     }
     else if(strcmp("delete", user_command) == 0)
     {
+        char buffer[READ_BUFFER_LEN];
+        printf("Okay, delete which message box?\n");
+        do
+        {
+            printf("delete:> ");
+            char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
+            if(*user_cmd == '\n')
+            {
+                continue;
+            }
+            cmd_args = user_cmd;
+            char *ending_space = strchr(cmd_args, '\n');
+            if(ending_space)
+                *ending_space = 0;
+            int len = strlen(user_cmd);
+            if(5 > len || len > 25)
+            {
+                printf("[%u] Error: Command was unsuccessful, MB len should be 5 to 25 letter long. Actual: %d\n", __LINE__, len);
+                return USR_CMD_STATUS_BAD_CMD;
+            }
+            break;
+        } while(1);
         command->opcode = DUMB_CMD_DELBX;
         DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "DELBX");
@@ -208,16 +252,16 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
             {
                 continue;
             }
-            int len = strlen(user_cmd);
-            if(5 > len || len > 25)
-            {
-                ERR_PRINT("Command was unsuccessful, please try again.\n");
-                break;
-            }
             cmd_args = user_cmd;
             char *ending_space = strchr(cmd_args, '\n');
             if(ending_space)
                 *ending_space = 0;
+            int len = strlen(user_cmd);
+            if(5 > len || len > 25)
+            {
+                printf("[%u] Error: Command was unsuccessful, MB len should be 5 to 25 letter long. Actual: %d\n", __LINE__, len);
+                return USR_CMD_STATUS_BAD_CMD;
+            }
             break;
         } while(1);
         command->opcode = DUMB_CMD_OPNBX;
@@ -228,6 +272,29 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     }
     else if(strcmp("close", user_command) == 0)
     {
+        char buffer[READ_BUFFER_LEN];
+        printf("Okay, close which message box?\n");
+        do
+        {
+            printf("close:> ");
+            char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
+            if(*user_cmd == '\n')
+            {
+                continue;
+            }
+            cmd_args = user_cmd;
+            char *ending_space = strchr(cmd_args, '\n');
+            if(ending_space)
+                *ending_space = 0;
+
+            int len = strlen(user_cmd);
+            if(5 > len || len > 25)
+            {
+                printf("[%u] Error: Command was unsuccessful, MB len should be 5 to 25 letter long. Actual: %d\n", __LINE__, len);
+                return USR_CMD_STATUS_BAD_CMD;
+            }
+            break;
+        } while(1);
         command->opcode = DUMB_CMD_CLSBX;
         DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "CLSBX");
@@ -243,6 +310,28 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     }
     else if(strcmp("put", user_command) == 0)
     {
+        char buffer[READ_BUFFER_LEN];
+        printf("Okay, put which message?\n");
+        do
+        {
+            printf("put:> ");
+            char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
+            if(*user_cmd == '\n')
+            {
+                continue;
+            }
+            int len = strlen(user_cmd);
+            if(len > 255)
+            {
+                ERR_PRINT("Command was unsuccessful, Message len shouldn't exceed 255 ascii letters\n");
+                return USR_CMD_STATUS_BAD_CMD;
+            }
+            cmd_args = user_cmd;
+            char *ending_space = strchr(cmd_args, '\n');
+            if(ending_space)
+                *ending_space = 0;
+            break;
+        } while(1);
         command->opcode = DUMB_CMD_PUTMG;
         DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "PUTMG");

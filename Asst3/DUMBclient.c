@@ -11,8 +11,12 @@
 
 #define USER_CMD_LEN_MAX 6
 #define USER_CMD_LEN_MIN 3
-#define ARGS_LEN_MAX 255
+#define ARGS_LEN_MAX 265
 #define DUMB_CMD_LEN 6
+#define READ_BUFFER_LEN 300
+
+#define DEBUG_PRINT //printf
+#define DUMP_ARRAY(a,b) //dump_array(a,b);
 
 void dump_array(char* buff, size_t len)
 {
@@ -66,8 +70,6 @@ void dump_array(char* buff, size_t len)
     printf("\n");
 }
 
-#define DUMP_ARRAY(a,b) dump_array(a,b);
-
 typedef enum
 {
     USR_CMD_STATUS_OK = 0,
@@ -107,15 +109,6 @@ void error(const char *masg)
     exit(0);
 }
 
-// void parse_client_commands(char *client_command){
-//   printf("Entered parse command function...");
-//   int x = strlen(client_command);
-//   char *str_command = (char *)malloc(sizeof(char) * x);
-//   strncpy(str_command, client_command, x-1);
-//
-//
-// }
-
 char *skip_leading_spaces(char *string)
 {
     if(*string == 0)
@@ -131,6 +124,19 @@ char *skip_leading_spaces(char *string)
 
 #define ERR_PRINT(msg) printf("[%u] Error: %s\n", __LINE__, msg);
 
+int check_if_ascii(char *string)
+{
+    while(*string)
+    {
+        if(32 > *string || *string > 126)
+        {
+            return 0;
+        }
+        string++;
+    }
+    return 1;
+}
+
 usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
 {
     DUMP_ARRAY(user_command, 17);
@@ -138,20 +144,16 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     command->user_command[0] = 0;
     command->args[0] = 0;
     int cmd_len = strlen(user_command);
-    //printf("cmd_len: %d\n", cmd_len);
     if(cmd_len > (USER_CMD_LEN_MAX + ARGS_LEN_MAX) || cmd_len < USER_CMD_LEN_MIN)
     {
         ERR_PRINT("Bad Command");
         return USR_CMD_STATUS_BAD_CMD;
     }
-    //printf("%u\n", __LINE__);
     char *cmd_args = NULL;
-    //tokenize
     cmd_args = strchr(user_command, '\n');
     if(cmd_args)
     {
         *cmd_args = '\0';
-        //printf("%u\n", __LINE__);
     }
     cmd_args = strchr(user_command, ' ');
     if(cmd_args)
@@ -159,15 +161,11 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
         *cmd_args = '\0';
         cmd_args++;
         cmd_args = skip_leading_spaces(cmd_args);
-        //printf("%u\n", __LINE__);
     }
-
-    //printf("%u\n", __LINE__);
     // check until reach end of the cmd string
     // we put \0 during initial parsing between command and args
     int i = 0;
     cmd_len = strlen(user_command);
-    //printf("cmd_len: %d\n", cmd_len);
     for(i = 0; i < cmd_len; i++)
     {
         if((isalpha(user_command[i]) == 0) && (isupper(user_command[i]) == 0))
@@ -176,8 +174,6 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
             return USR_CMD_STATUS_BAD_CMD;
         }
     }
-    //printf("%u\n", __LINE__);
-
     if(strcmp("quit", user_command) == 0)
     {
         command->opcode = DUMB_CMD_GDBYE;
@@ -187,7 +183,7 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     else if(strcmp("create", user_command) == 0)
     {
         command->opcode = DUMB_CMD_CREAT;
-        DUMP_ARRAY((char*)command, 32);
+        DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "CREAT");
         if(cmd_args)
             strncpy(command->args, cmd_args, ARGS_LEN_MAX);
@@ -195,19 +191,19 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     else if(strcmp("delete", user_command) == 0)
     {
         command->opcode = DUMB_CMD_DELBX;
-        DUMP_ARRAY((char*)command, 32);
+        DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "DELBX");
         if(cmd_args)
             strncpy(command->args, cmd_args, ARGS_LEN_MAX);
     }
     else if(strcmp("open", user_command) == 0)
     {
-        char buffer[255];
+        char buffer[READ_BUFFER_LEN];
         printf("Okay, open which message box?\n");
         do
         {
             printf("open:> ");
-            char *user_cmd = fgets(buffer, 255, stdin);
+            char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
             if(*user_cmd == '\n')
             {
                 continue;
@@ -225,7 +221,7 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
             break;
         } while(1);
         command->opcode = DUMB_CMD_OPNBX;
-        DUMP_ARRAY((char*)command, 32);
+        DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "OPNBX");
         if(cmd_args)
             strncpy(command->args, cmd_args, ARGS_LEN_MAX);
@@ -233,19 +229,22 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     else if(strcmp("close", user_command) == 0)
     {
         command->opcode = DUMB_CMD_CLSBX;
-        DUMP_ARRAY((char*)command, 32);
+        DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "CLSBX");
         if(cmd_args)
             strncpy(command->args, cmd_args, ARGS_LEN_MAX);
     }
     else if(strcmp("next", user_command) == 0)
     {
-        //return DUMP_CMD_DELBX_NXTMG";
+        command->opcode = DUMB_CMD_NXTMG;
+        DUMP_ARRAY((char*) command, 32);
+        strcpy(command->command, "NXTMG");
+        command->args[0] = 0;
     }
     else if(strcmp("put", user_command) == 0)
     {
         command->opcode = DUMB_CMD_PUTMG;
-        DUMP_ARRAY((char*)command, 32);
+        DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "PUTMG");
         if(cmd_args)
         {
@@ -258,7 +257,7 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     }
     else if(strcmp("help", user_command) == 0)
     {
-        printf("I am here - > HELP");
+        printf("I'am here - > HELP\n");
         print_help_menu();
     }
     else
@@ -272,17 +271,16 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
 void print_help_menu()
 {
 
-    printf("\t----MAIN MENU-----\n");
+    printf("\t----MAIN MENUE-----\n");
     printf("\tPlease use one of the following commands:\n");
-    printf("\t0. hello - To start interaction with the server\n");
-    printf("\t1. quit - stop session and exit the program\n");
+    printf("\t1. quit   - stop session and exit the program\n");
     printf("\t2. create - Create new massage box on the server\n");
     printf("\t3. delete - will exit the program\n");
-    printf("\t4. open - open if massage box if exists\n");
-    printf("\t5. close - close current massage box\n");
-    printf("\t6. next - Get the next massage from the current massage box\n");
-    printf("\t7. put - Put a message in to the currently open message box\n");
-    printf("\t8. help - will show main manue\n");
+    printf("\t4. open   - open if massage box if exists\n");
+    printf("\t5. close  - close current massage box\n");
+    printf("\t6. next   - Get the next massage from the current massage box\n");
+    printf("\t7. put    - Put a message in to the currently open message box\n");
+    printf("\t8. help   - will show main menue\n");
 }
 
 int send_to_server(dumb_command_t *command, int sockfd, char *buffer);
@@ -295,8 +293,7 @@ int main(int argc, char *argv[])
     int sockfd, portno, n, counter = 0, con = 0;
     struct sockaddr_in serv_addr;
     struct hostent *server;
-    char buffer[255];
-    char argument[20];
+    char buffer[READ_BUFFER_LEN];
 
     if(argc < 3)
     {
@@ -331,7 +328,7 @@ int main(int argc, char *argv[])
         {
             break;
         }
-        fprintf(stderr, "Failed to connect to DUMP server\n");
+        fprintf(stderr, "Failed to connect to DUMB server\n");
         sleep(1);
     }
     if(con)
@@ -342,7 +339,7 @@ int main(int argc, char *argv[])
     dumb_command_t command = {0};
     command.opcode = DUMB_CMD_HELLO;
     send_to_server(&command, sockfd, hello);
-    bzero(buffer, 255);
+    bzero(buffer, READ_BUFFER_LEN);
     read_from_server(&command, sockfd, buffer);
     printf("%s\n", buffer);
 
@@ -351,15 +348,15 @@ int main(int argc, char *argv[])
     {
         //clean buffer
         printf("%s:> ", command.user_command);
-        bzero(buffer, 255);
-        char *user_cmd = fgets(buffer, 255, stdin);
+        bzero(buffer, READ_BUFFER_LEN);
+        char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
         if(*user_cmd == '\n')
         {
             continue;
         }
         usr_cmd_parse_status status = parse_read(user_cmd, &command);
 
-        //printf("status %u opcode: %u\n", status, command.opcode);
+        DEBUG_PRINT("status %u opcode: %u\n", status, command.opcode);
 
         if(USR_CMD_STATUS_BAD_CMD == status)
         {
@@ -379,10 +376,10 @@ int main(int argc, char *argv[])
                 case DUMB_CMD_GDBYE:
                 {
                     send_cmd_to_server(&command, sockfd);
-                    bzero(buffer, 255);
+                    bzero(buffer, READ_BUFFER_LEN);
                     if(read_from_server(&command, sockfd, buffer) > 0)
                     {
-                        printf("ERROR: Unexpected Server behavior. Closing....\n");
+                        printf("Error: Unexpected Server behavior. Closing....\n");
                         exit(1);
                     }
                 }
@@ -390,9 +387,9 @@ int main(int argc, char *argv[])
                 case DUMB_CMD_CREAT:
                 {
                     send_cmd_to_server(&command, sockfd);
-                    bzero(buffer, 255);
+                    bzero(buffer, READ_BUFFER_LEN);
                     read_from_server(&command, sockfd, buffer);
-                    printf("%s\n", buffer);
+                    DEBUG_PRINT("%s\n", buffer);
                     int res = strcmp(buffer, "OK!");
                     if(0 == res)
                     {
@@ -416,9 +413,9 @@ int main(int argc, char *argv[])
                 case DUMB_CMD_DELBX:
                 {
                     send_cmd_to_server(&command, sockfd);
-                    bzero(buffer, 255);
+                    bzero(buffer, READ_BUFFER_LEN);
                     read_from_server(&command, sockfd, buffer);
-                    printf("%s\n", buffer);
+                    DEBUG_PRINT("%s\n", buffer);
                     int res = strcmp(buffer, "OK!");
                     if(0 == res)
                     {
@@ -448,9 +445,9 @@ int main(int argc, char *argv[])
                 case DUMB_CMD_OPNBX:
                 {
                     send_cmd_to_server(&command, sockfd);
-                    bzero(buffer, 255);
+                    bzero(buffer, READ_BUFFER_LEN);
                     read_from_server(&command, sockfd, buffer);
-                    printf("%s\n", buffer);
+                    DEBUG_PRINT("%s\n", buffer);
                     int res = strcmp(buffer, "OK!");
                     if(0 == res)
                     {
@@ -461,6 +458,12 @@ int main(int argc, char *argv[])
                     if(0 == res)
                     {
                         printf("Error. Message box '%s' does not exist.\n", command.args);
+                        break;
+                    }
+                    res = strcmp(buffer, "ER:OPEND");
+                    if(0 == res)
+                    {
+                        printf("Error. Message box can't be opened. It is opened by another client.\n");
                         break;
                     }
                     res = strcmp(buffer, "ER:WHAT?");
@@ -474,9 +477,9 @@ int main(int argc, char *argv[])
                 case DUMB_CMD_CLSBX:
                 {
                     send_cmd_to_server(&command, sockfd);
-                    bzero(buffer, 255);
+                    bzero(buffer, READ_BUFFER_LEN);
                     read_from_server(&command, sockfd, buffer);
-                    printf("%s\n", buffer);
+                    DEBUG_PRINT("%s\n", buffer);
                     int res = strcmp(buffer, "OK!");
                     if(0 == res)
                     {
@@ -504,13 +507,83 @@ int main(int argc, char *argv[])
                 }
                     break;
                 case DUMB_CMD_NXTMG:
+                {
+                    send_cmd_to_server(&command, sockfd);
+                    bzero(buffer, READ_BUFFER_LEN);
+                    read_from_server(&command, sockfd, buffer);
+                    DEBUG_PRINT("%s\n", buffer);
+                    int res = check_if_ascii(buffer);
+                    if(0 == res)
+                    {
+                        printf("[%u]: Error: Malformed response.\n", __LINE__);
+                        break;
+                    }
+                    res = strcmp(buffer, "ER:EMPTY");
+                    if(0 == res)
+                    {
+                        printf("No more messages in the mailbox.\n");
+                        break;
+                    }
+                    res = strcmp(buffer, "ER:NOOPN");
+                    if(0 == res)
+                    {
+                        printf("Error. Message box either not opened or doesn't exist.\n");
+                        break;
+                    }
+                    res = strcmp(buffer, "ER:WHAT?");
+                    if(0 == res)
+                    {
+                        printf("Error. Your message is in some way broken or malformed.\n");
+                        break;
+                    }
+
+                    char *ok_string = strstr(buffer, "OK!");
+                    if(!ok_string)
+                    {
+                        printf("[%u]: Error: Malformed response.\n", __LINE__);
+                        break;
+                    }
+                    else
+                    {
+                        char *args = strchr(ok_string, '!');
+                        if(!args)
+                        {
+                            printf("[%u]: Error: Malformed response.\n", __LINE__);
+                            break;
+                        }
+                        *args = 0;
+                        args++;
+                        char *message = strchr(args, '!');
+                        if(!message)
+                        {
+                            printf("Error: Malformed response.\n");
+                            break;
+                        }
+                        *message = 0;
+                        message++;
+                        unsigned int expected_msg_len = atoi(args);
+                        unsigned int actual_msg_len = strlen(message);
+                        if(expected_msg_len > 255)
+                        {
+                            printf("Error: The message is too long.  %u (Max = 255)\n", expected_msg_len);
+                            break;
+                        }
+                        if(expected_msg_len != actual_msg_len)
+                        {
+                            printf("Error: incorrect length of the message: Expected: %u. Actual: %u\n", expected_msg_len, actual_msg_len);
+                            break;
+                        }
+                        printf("MSG: %s\n", message);
+                        break;
+                    }
+                }
                     break;
                 case DUMB_CMD_PUTMG:
                 {
                     send_cmd_to_server(&command, sockfd);
-                    bzero(buffer, 255);
+                    bzero(buffer, READ_BUFFER_LEN);
                     read_from_server(&command, sockfd, buffer);
-                    printf("%s\n", buffer);
+                    DEBUG_PRINT("%s\n", buffer);
                     DUMP_ARRAY(buffer, 17);
                     char *ok_string = strstr(buffer, "OK!");
                     if(ok_string)
@@ -521,7 +594,7 @@ int main(int argc, char *argv[])
                     int res = strcmp(buffer, "ER:NOOPN");
                     if(0 == res)
                     {
-                        printf("Error. Message box can't be added. MB either is closed or full or doesn't exist.\n");
+                        printf("Error. Message box is not accessible.\n");
                         break;
                     }
                     res = strcmp(buffer, "ER:WHAT?");
@@ -533,39 +606,12 @@ int main(int argc, char *argv[])
                     break;
                 }
             }
-
-            //printf("Server resp: %s\n", buffer);
             continue;
         }
         else
         {
             continue;
         }
-
-        //n = write(sockfd, send_command_to_server, strlen(send_command_to_server));
-
-        if(n < 0)
-        {
-            error("Error on writing");
-        }
-        //clean buffer.
-        bzero(buffer, 255);
-        //read massages from the server/ holds massages back from the server...
-        n = read(sockfd, buffer, 255);
-        if(n < 0)
-        {
-            error("Error on reading");
-        }
-
-
-        printf("Server: %s\n", buffer);
-
-        int i = strncmp("Bye", buffer, 3);
-        if(i == 0)
-        {
-            break;
-        }
-
     }
 
     close(sockfd);
@@ -575,7 +621,7 @@ int main(int argc, char *argv[])
 int send_to_server(dumb_command_t *command, int sockfd, char *buffer)
 {
     int n = write(sockfd, buffer, strlen(buffer));
-    //printf("%i bytes sent to server\n", n);
+    DEBUG_PRINT("%i bytes sent to server\n", n);
     if(n < 0)
     {
         error("Error on reading");
@@ -595,7 +641,7 @@ int send_cmd_to_server(dumb_command_t *command, int sockfd)
 int read_from_server(dumb_command_t *command, int sockfd, char *buffer)
 {
     //read massages from the server/ holds massages back from the server...
-    int n = read(sockfd, buffer, 255);
+    int n = read(sockfd, buffer, READ_BUFFER_LEN);
     if(n < 0)
     {
         error("Error on reading");
@@ -606,6 +652,6 @@ int read_from_server(dumb_command_t *command, int sockfd, char *buffer)
         exit(0);
     }
 
-    //printf("%i %s\n", n, buffer);
+    DEBUG_PRINT("%i %s\n", n, buffer);
     return n;
 }

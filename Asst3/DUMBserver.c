@@ -37,6 +37,9 @@ TASKS To DO:
 
 #define CMD_DELIMITER ' '
 
+#define DEBUG_PRINT //printf
+#define DUMP_ARRAY(a,b) //dump_array(a,b);
+
 void dump_array(char* buff, size_t len)
 {
 
@@ -89,8 +92,6 @@ void dump_array(char* buff, size_t len)
     printf("\n");
 }
 
-#define DUMP_ARRAY(a,b) dump_array(a,b);
-
 #define QUEUE_SIZE 1024
 #define SIZE_MASK (QUEUE_SIZE - 1)
 
@@ -126,15 +127,11 @@ size_t msgq_next_index(size_t index)
 
 size_t msgq_prev_index(size_t index)
 {
-    printf("%u\n", __LINE__);
-    size_t pindex = ((index - 1) & SIZE_MASK);
-    printf("pindex: %d\n",  pindex);
+    return ((index - 1) & SIZE_MASK);
 }
 
 int msgq_is_full(message_queue_t *msgq)
 {
-    printf("%u %p\n", __LINE__, msgq);
-    printf("Tail %d, Head: %d\n", msgq->tailIndex_, msgq->headIndex_);
     return(msgq->tailIndex_ == msgq_prev_index(msgq->headIndex_));
 }
 
@@ -145,18 +142,16 @@ void msgq_init(message_queue_t *msgq)
 
 queue_status_e msgq_push_back(message_queue_t *msgq, message_t *msg)
 {
-    printf("%u %p\n", __LINE__, msgq);
     if(msgq_is_full(msgq))
     {
         return QUEUE_STATUS_FULL;
     }
-    printf("%u\n", __LINE__);
     msgq->circBuffer[msgq->tailIndex_] = msg;
     msgq->tailIndex_ = msgq_next_index(msgq->tailIndex_);
     return QUEUE_STATUS_SUCCESS;
 }
 
-message_t * msgq_pup_front(message_queue_t *msgq)
+message_t * msgq_pop_front(message_queue_t *msgq)
 {
     if(msgq_is_empty(msgq))
     {
@@ -504,7 +499,7 @@ void* client_thread(void* arg)
         buffer[n] = 0;
 
         //this will return a number for a specific case, then take it to the assigned action.
-        int num_act = parse_command(client_ctx, buffer, n);
+        parse_command(client_ctx, buffer, n);
     }
     client_shutdown(client_ctx);
 }
@@ -525,7 +520,7 @@ void on_end()
 int main(int argc, char const *argv[])
 {
 
-    printf("DUMP Started\n");
+    printf("DUMB Server Started\n");
     // check if port number is missing.
     if(argc < 2)
     {
@@ -679,7 +674,6 @@ int parse_command(client_context_t *client_ctx, char *instruction, size_t len)
     DUMP_ARRAY(instruction, 17);
 
     int opcode = 0;
-    //return num for each case: 1 - hello, 2 - goodbye!, 3 - create, 4 - open, 5 - next, 6 - put, 7 - delete, 8 - close.
     if(strcmp("HELLO", command) == 0)
     {
         opcode = 1;
@@ -827,7 +821,7 @@ void OPNBX_handler(client_context_t *client_ctx, char *instruction)
     switch(status)
     {
         case STATUS_OK:
-            // close previously opened MB
+            // close previously opened Mailbox
             if(client_ctx->open_mailbox)
             {
                 client_ctx->open_mailbox->client = NULL;
@@ -849,12 +843,33 @@ void OPNBX_handler(client_context_t *client_ctx, char *instruction)
     }
 }
 
+message_t *mailbox_get_next_msg(mailbox_t *mbox)
+{
+    return msgq_pop_front(&mbox->msgq);
+}
+
 void NXTMG_handler(client_context_t *client_ctx, char *instruction)
 {
     DUMP_ARRAY(instruction, 17);
-    char msg_buff[128];
+    char msg_buff[300];
     printf("%s %s %s\n", message_prefix(msg_buff, client_ctx), "NXTMG", instruction);
 
+    if(!client_ctx->open_mailbox)
+    {
+        respond_to_client(client_ctx, "ER:NOOPN");
+        return;
+    }
+
+    message_t *message = mailbox_get_next_msg(client_ctx->open_mailbox);
+
+    if(!message)
+    {
+        respond_to_client(client_ctx, "ER:EMPTY");
+        return;
+    }
+    
+    sprintf(msg_buff, "OK!%d!%s", strlen(message->msg), message->msg);
+    respond_to_client(client_ctx, msg_buff);
 }
 
 int mailbox_put_msg(mailbox_t *mbox, message_t *msg)
@@ -893,21 +908,18 @@ void PUTMG_handler(client_context_t *client_ctx, char *instruction)
         return;
     }
     str++;
-    printf("%u\n", __LINE__);
     char *start_msg = strchr(str, '!');
     if(!start_msg)
     {
         respond_WHAT(client_ctx);
         return;
     }
-    printf("%u\n", __LINE__);
     *start_msg = 0;
     start_msg++;
 
     DUMP_ARRAY(str, 17);
     unsigned int expected_msg_len = atoi(str);
     unsigned int actual_msg_len = strlen(start_msg);
-    printf("%u\n", __LINE__);
 
     if(expected_msg_len > 255)
     {
@@ -915,21 +927,18 @@ void PUTMG_handler(client_context_t *client_ctx, char *instruction)
         respond_WHAT(client_ctx);
         return;
     }
-    printf("%u\n", __LINE__);
     if(expected_msg_len != actual_msg_len)
     {
-        printf("Error: incorrect length of the message: Expected: %d. Actual: %d\n", expected_msg_len, actual_msg_len);
+        printf("Error: incorrect length of the message: Expected: %u. Actual: %u\n", expected_msg_len, actual_msg_len);
         respond_WHAT(client_ctx);
         return;
     }
-    printf("%u\n", __LINE__);
     if(0 == check_if_ascii(start_msg))
     {
         printf("Error: The message supposed to be in ASCII alphanumeric format (32 - 126)\n");
         respond_WHAT(client_ctx);
         return;
     }
-    printf("%u\n", __LINE__);
     if(!client_ctx->open_mailbox)
     {
         respond_to_client(client_ctx, "ER:NOOPN");
@@ -942,10 +951,8 @@ void PUTMG_handler(client_context_t *client_ctx, char *instruction)
         perror("FATAL Error: memory allocation failed. Stop process");
         exit(1);
     }
-    printf("%u\n", __LINE__);
     msg->len = expected_msg_len;
     strcpy(msg->msg, start_msg);
-    printf("%u\n", __LINE__);
     if(!mailbox_put_msg(client_ctx->open_mailbox, msg))
     {
         free(msg);
@@ -953,8 +960,7 @@ void PUTMG_handler(client_context_t *client_ctx, char *instruction)
         respond_to_client(client_ctx, "ER:NOOPN");
         return;
     }
-    printf("%u\n", __LINE__);
-    sprintf(msg_buff, "OK!%d",expected_msg_len); 
+    sprintf(msg_buff, "OK!%d", expected_msg_len);
     respond_to_client(client_ctx, msg_buff);
 }
 
@@ -997,7 +1003,7 @@ void Error_handler(client_context_t *client_ctx, char *instruction)
 int send_to_client(client_context_t *client_ctx, char *buffer)
 {
     int n = write(client_ctx->socket_fd, buffer, strlen(buffer));
-    //printf("%i bytes sent to server\n", n);
+    DEBUG_PRINT("%i bytes sent to server\n", n);
     if(n < 0)
     {
         error("Error on reading");
@@ -1019,7 +1025,7 @@ int read_from_client(client_context_t *client_ctx, char *buffer)
         exit(0);
     }
 
-    //printf("%i %s\n", n, buffer);
+    DEBUG_PRINT("%i %s\n", n, buffer);
     return n;
 }
 

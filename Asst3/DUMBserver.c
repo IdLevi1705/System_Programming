@@ -874,7 +874,6 @@ void NXTMG_handler(client_context_t *client_ctx, char *instruction)
 
 int mailbox_put_msg(mailbox_t *mbox, message_t *msg)
 {
-    printf("%u\n", __LINE__);
     if(QUEUE_STATUS_SUCCESS != msgq_push_back(&mbox->msgq, msg))
     {
         return 0;

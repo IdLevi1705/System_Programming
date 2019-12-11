@@ -29,12 +29,71 @@ TASKS To DO:
 #include <arpa/inet.h>
 #include <time.h>
 
-#define MAX_CONNECTIONS 16
-#define MAX_MAILBOXES 8
-#define MAILBOX_NAME_LEN_MAX    16
+#define MAX_CONNECTIONS 1024
+#define MAX_MAILBOXES 1024
+#define MAILBOX_NAME_LEN_MIN    5
+#define MAILBOX_NAME_LEN_MAX    25
 #define MAX_CMD_NAME_LEN 5
 
 #define CMD_DELIMITER ' '
+
+void dump_array(char* buff, size_t len)
+{
+
+    struct temp
+    {
+
+        union
+        {
+            unsigned int i;
+            char c[4];
+        } u;
+    };
+    int i = 0;
+    int counter = 0;
+    int print_hexa = 1;
+    for (; i < len; i++)
+    {
+        if (!(counter++ % 16))
+        {
+            if (1 == print_hexa && i != 0)
+            {
+                i -= 16;
+                print_hexa = 0;
+                printf("\t");
+            } else
+            {
+                print_hexa = 1;
+                printf("\n%p ", &buff[i]);
+            }
+        }
+        if (print_hexa)
+        {
+            struct temp t = {0};
+            t.u.c[0] = buff[i];
+            printf("0x%02X ", t.u.i);
+        } else
+        {
+            if (32 <= buff[i] && buff[i] <= 126)
+            {
+                printf("%c", buff[i]);
+            } else
+            {
+                printf(".");
+            }
+        }
+    }
+    printf("\n");
+}
+
+#define DUMP_ARRAY(a,b) dump_array(a,b);
+
+typedef enum
+{
+    STATUS_OK = 0,
+    STATUS_CORRUPTED_CMD,
+    STATUS_MBOX_EXIST
+} STATUS;
 
 pthread_mutex_t global_lock;
 
@@ -56,75 +115,78 @@ void error(const char *masg)
 
 typedef struct mailbox
 {
-    char active_mailbox[MAILBOX_NAME_LEN_MAX];
+    int active;
+    char mailbox_name[MAILBOX_NAME_LEN_MAX];
     int active_clients_ref_counter;
 } mailbox_t;
 
 mailbox_t mailbox_table[MAX_MAILBOXES];
+
+mailbox_t *mailbox_find_by_name_not_safe(char *mbox_name)
+{
+    mailbox_t *mailbox = NULL;
+    int i = 0;
+    for (; i < MAX_MAILBOXES; i++)
+    {
+        if (0 == strncmp(mailbox_table[i].mailbox_name, mbox_name, MAILBOX_NAME_LEN_MAX))
+        {
+            mailbox = &mailbox_table[i];
+            break;
+        };
+    }
+    return mailbox;
+}
+
+STATUS mailbox_create(char *mbox_name, mailbox_t **mailbox)
+{
+    STATUS status = STATUS_OK;
+    *mailbox = NULL;
+    int name_len = strlen(mbox_name);
+    if (MAILBOX_NAME_LEN_MIN > name_len || name_len > MAILBOX_NAME_LEN_MAX)
+    {
+        // Wrong name length. Fail the request
+        return STATUS_CORRUPTED_CMD;
+    }
+    lock();
+    do
+    {
+        // Check if the mailbox is created already 
+        *mailbox = mailbox_find_by_name_not_safe(mbox_name);
+        if (*mailbox)
+        {
+            // MB exists. fail the request
+            *mailbox = NULL;
+            status = STATUS_MBOX_EXIST;
+            break;
+        }
+        int i = 0;
+        for (; i < MAX_MAILBOXES; i++)
+        {
+            if (0 == mailbox_table[i].active)
+            {
+                // empty slot found. let's use it
+                mailbox_table[i].active = 1;
+                strncpy(mailbox_table[i].mailbox_name, mbox_name, MAILBOX_NAME_LEN_MAX);
+                *mailbox = &mailbox_table[i];
+                status = STATUS_OK;
+                break;
+            };
+        }
+    } while (0);
+    unlock();
+    return status;
+}
 
 typedef struct client_context
 {
     int socket_fd;
     pthread_t tid;
     struct sockaddr_in address;
-    struct mailbox *activ_mailbox;
+    struct mailbox *open_mailbox;
+
 } client_context_t;
 
-
 char *month[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-
-void dump_array(char* buff, size_t len)
-{
-	struct temp
-	{
-
-		union
-		{
-			unsigned int i;
-			char c[4];
-		} u;
-	};
-	int i = 0;
-	int counter = 0;
-	int print_hexa = 1;
-	for (; i < len; i++)
-	{
-		if (!(counter++ % 16))
-		{
-			if (1 == print_hexa && i !=0)
-			{
-				i -= 16;
-				print_hexa = 0;
-				printf("\t");
-			}
-			else
-			{
-				print_hexa = 1;
-				printf("\n");
-			}
-		}
-		if (print_hexa)
-		{
-			struct temp t = { 0 };
-			t.u.c[0] = buff[i];
-			printf("0x%02X ", t.u.i);
-		}
-		else
-		{
-			if (32 <= buff[i] && buff[i] <= 126)
-			{
-				printf("%c", buff[i]); 
-			}
-			else
-			{
-				printf(".");
-			}
-		}
-	}
-	printf("\n");
-}
-
-#define DUMP_ARRAY(a,b) dump_array(a,b);
 
 int time_string(char *buffer)
 {
@@ -133,7 +195,7 @@ int time_string(char *buffer)
     return sprintf(buffer, "%02d %s ", tm.tm_mday, month[tm.tm_mon]);
 }
 
-char *message_prefix(char *buffer, client_context_t *client_ctx)
+char *message_prefix(char *buffer, client_context_t * client_ctx)
 {
     int n = sprintf(buffer, "[%u] ", pthread_self());
     n += time_string(buffer + n);
@@ -142,12 +204,13 @@ char *message_prefix(char *buffer, client_context_t *client_ctx)
     char str[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &ipAddr, str, INET_ADDRSTRLEN);
     n += sprintf((buffer + n), "%s", str);
+    buffer[n] = 0;
     return buffer;
 }
 
 client_context_t clients_table[MAX_CONNECTIONS];
 
-client_context_t *client_find_not_safe(pthread_t tid)
+client_context_t * client_find_not_safe(pthread_t tid)
 {
     int i = 0;
     for (; i < MAX_CONNECTIONS; i++)
@@ -171,12 +234,12 @@ void client_remove_by_tid(pthread_t tid)
     unlock();
 }
 
-void client_remove(client_context_t *client)
+void client_remove(client_context_t * client)
 {
     client->tid = 0;
 }
 
-void client_shutdown(client_context_t *client)
+void client_shutdown(client_context_t * client)
 {
     lock();
     do
@@ -186,14 +249,15 @@ void client_shutdown(client_context_t *client)
             perror("ERROR: Client %p already removed!\n");
             break;
         }
-        if (client->activ_mailbox)
+        if (client->open_mailbox)
         {
-            client->activ_mailbox->active_clients_ref_counter--;
-            if (client->activ_mailbox->active_clients_ref_counter == 0)
+            client->open_mailbox->active_clients_ref_counter--;
+            if (client->open_mailbox->active_clients_ref_counter == 0)
             {
                 //TBD remove the mailbox - check the requirements
             }
         }
+        shutdown(client->socket_fd, SHUT_RDWR);
         close(client->socket_fd);
         client_remove(client);
     } while (0);
@@ -202,7 +266,7 @@ void client_shutdown(client_context_t *client)
     printf("%s disconnected\n", message_prefix(msg_buff, client));
 }
 
-client_context_t *client_add()
+client_context_t * client_add()
 {
     client_context_t *client = NULL;
     lock();
@@ -243,7 +307,7 @@ void* client_thread(void* arg)
         {
             error("Error on reading");
         }
-        buffer[n - 1] = 0;
+        buffer[n] = 0;
 
         //this will return a number for a specific case, then take it to the assigned action.
         int num_act = parse_command(client_ctx, buffer, n);
@@ -329,10 +393,6 @@ int main(int argc, char const *argv[])
             fprintf(stderr, "Error on accept! %u", cient_ctx->socket_fd);
             continue;
         }
-        //        int n = read(cient_ctx.socket_fd, buffer, 5);
-        //        
-        //        printf("n %d %d\n", n, cient_ctx.socket_fd);
-
         int err = pthread_create(
             &cient_ctx->tid,
             NULL,
@@ -345,7 +405,6 @@ int main(int argc, char const *argv[])
             exit(1);
         }
     }
-
 
     close(sockfd);
 
@@ -366,16 +425,17 @@ void Error_handler(client_context_t *client_ctx, char *instruction, size_t len);
 
 int parse_command(client_context_t *client_ctx, char *instruction, size_t len)
 {
-    char msg_buff[128];
+    DUMP_ARRAY(instruction, 33);
+    char msg_buff[256];
     //MAX char for command is 5+1.
     char command[MAX_CMD_NAME_LEN + 1] = "";
     //CMD_DELIMITER
-    if (len < (MAX_CMD_NAME_LEN + 1))
+    if (len < (MAX_CMD_NAME_LEN))
     {
         fprintf(stderr, "%s [%d] Corrupted Command\n", message_prefix(msg_buff, client_ctx), __LINE__);
         return 0;
     }
-    if (instruction[5] != CMD_DELIMITER)
+    if (instruction[5] != CMD_DELIMITER && instruction[5] != 0)
     {
         fprintf(stderr, "%s [%d] Corrupted Command\n", message_prefix(msg_buff, client_ctx), __LINE__);
         return 0;
@@ -395,8 +455,6 @@ int parse_command(client_context_t *client_ctx, char *instruction, size_t len)
         }
     }
     strncpy(command, instruction, MAX_CMD_NAME_LEN);
-    
-    DUMP_ARRAY(instruction, 33);
 
     int opcode = 0;
     //return num for each case: 1 - hello, 2 - goodbye!, 3 - create, 4 - open, 5 - next, 6 - put, 7 - delete, 8 - close.
@@ -404,38 +462,31 @@ int parse_command(client_context_t *client_ctx, char *instruction, size_t len)
     {
         opcode = 1;
         HELLO_handler(client_ctx, instruction + MAX_CMD_NAME_LEN + 1, len - MAX_CMD_NAME_LEN - 1);
-    } else
-        if (strcmp("GDBYE", command) == 0)
+    } else if (strcmp("GDBYE", command) == 0)
     {
         opcode = 2;
         GDBYE_handler(client_ctx, instruction + MAX_CMD_NAME_LEN + 1, len - MAX_CMD_NAME_LEN - 1);
-    } else
-        if (strcmp("CREAT", command) == 0)
+    } else if (strcmp("CREAT", command) == 0)
     {
         opcode = 3;
         CREAT_handler(client_ctx, instruction + MAX_CMD_NAME_LEN + 1, len - MAX_CMD_NAME_LEN - 1);
-    } else
-        if (strcmp("OPNBX", command) == 0)
+    } else if (strcmp("OPNBX", command) == 0)
     {
         opcode = 4;
         OPNBX_handler(client_ctx, instruction + MAX_CMD_NAME_LEN + 1, len - MAX_CMD_NAME_LEN - 1);
-    } else
-        if (strcmp("NXTMG", command) == 0)
+    } else if (strcmp("NXTMG", command) == 0)
     {
         opcode = 5;
         NXTMG_handler(client_ctx, instruction + MAX_CMD_NAME_LEN + 1, len - MAX_CMD_NAME_LEN - 1);
-    } else
-        if (strcmp("PUTMG", command) == 0)
+    } else if (strcmp("PUTMG", command) == 0)
     {
         opcode = 6;
         PUTMG_handler(client_ctx, instruction + MAX_CMD_NAME_LEN + 1, len - MAX_CMD_NAME_LEN - 1);
-    } else
-        if (strcmp("DELBX", command) == 0)
+    } else if (strcmp("DELBX", command) == 0)
     {
         opcode = 7;
         DELBX_handler(client_ctx, instruction + MAX_CMD_NAME_LEN + 1, len - MAX_CMD_NAME_LEN - 1);
-    } else
-        if (strcmp("CLSBX", command) == 0)
+    } else if (strcmp("CLSBX", command) == 0)
     {
         opcode = 8;
         CLSBX_handler(client_ctx, instruction + MAX_CMD_NAME_LEN + 1, len - MAX_CMD_NAME_LEN - 1);
@@ -445,7 +496,6 @@ int parse_command(client_context_t *client_ctx, char *instruction, size_t len)
         Error_handler(client_ctx, instruction + MAX_CMD_NAME_LEN + 1, len - MAX_CMD_NAME_LEN - 1);
         return 0;
     }
-
     printf("%s %s\n", message_prefix(msg_buff, client_ctx), command);
     return opcode;
 }
@@ -455,19 +505,18 @@ void HELLO_handler(client_context_t *client_ctx, char *instruction, size_t len)
     char msg_buff[128];
     char buffer[SOCKET_BUFF_SIZE + 1];
     bzero(buffer, 255);
-    //int n = time_string(buffer);
     sprintf(buffer, "HELLO DUMBv0 ready!\n");
     int n = write(client_ctx->socket_fd, buffer, strlen(buffer));
-
     if (n < 0)
     {
-        fprintf(stderr, "%s Error on writing\n", message_prefix(msg_buff, client_ctx));
+        fprintf(stderr, "%s Error on writing %u\n", message_prefix(msg_buff, client_ctx), n);
     }
 }
 
 void GDBYE_handler(client_context_t *client_ctx, char *instruction, size_t len)
 {
-
+    client_shutdown(client_ctx);
+    pthread_exit(NULL);
 }
 
 void CREAT_handler(client_context_t *client_ctx, char *instruction, size_t len)

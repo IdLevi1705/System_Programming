@@ -63,7 +63,7 @@ void dump_array(char* buff, size_t len)
     printf("\n");
 }
 
-#define DUMP_ARRAY(a,b) dump_array(a,b);
+#define DUMP_ARRAY(a,b) //dump_array(a,b);
 
 typedef enum
 {
@@ -74,28 +74,28 @@ typedef enum
 
 typedef enum
 {
-    DUMP_CMD_HELLO = 1,
-    DUMP_CMD_GDBYE,
-    DUMP_CMD_CREAT,
-    DUMP_CMD_DELBX,
-    DUMP_CMD_OPNBX,
-    DUMP_CMD_CLSBX,
-    DUMP_CMD_NXTMG,
-    DUMP_CMD_PUTMG
-} dump_cmd_opcode;
+    DUMB_CMD_HELLO = 1,
+    DUMB_CMD_GDBYE,
+    DUMB_CMD_CREAT,
+    DUMB_CMD_DELBX,
+    DUMB_CMD_OPNBX,
+    DUMB_CMD_CLSBX,
+    DUMB_CMD_NXTMG,
+    DUMB_CMD_PUTMG
+} dumb_cmd_opcode;
 
-typedef struct dumpb_command
+typedef struct dumb_command
 {
-    dump_cmd_opcode opcode;
-    char user_command[USER_CMD_LEN_MAX];
+    dumb_cmd_opcode opcode;
+    char user_command[USER_CMD_LEN_MAX + 5];
     char command[USER_CMD_LEN_MAX];
     char args[ARGS_LEN_MAX];
-} dumpb_command_t;
+} dumb_command_t;
 
 
 void error(const char *masg);
 void print_help_menu();
-usr_cmd_parse_status parse_read(char *user_command, dumpb_command_t *command);
+usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command);
 void parse_client_commands(char *client_command);
 
 void error(const char *masg)
@@ -126,21 +126,31 @@ char *skip_leading_spaces(char *string)
     return string;
 }
 
-usr_cmd_parse_status parse_read(char *user_command, dumpb_command_t *command)
+#define ERR_PRINT(msg) printf("[%u] Error: %s\n", __LINE__, msg);
+
+usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
 {
-    //DUMP_ARRAY(user_command, 17);
+    DUMP_ARRAY(user_command, 17);
     //start iterate from instruction string.
+    command->user_command[0] = 0;
+    command->args[0] = 0;
     int cmd_len = strlen(user_command);
     //printf("cmd_len: %d\n", cmd_len);
     if (cmd_len > (USER_CMD_LEN_MAX + ARGS_LEN_MAX) || cmd_len < USER_CMD_LEN_MIN)
     {
-        //printf("%u\n", __LINE__);
+        ERR_PRINT("Bad Command");
         return USR_CMD_STATUS_BAD_CMD;
     }
     //printf("%u\n", __LINE__);
     char *cmd_args = NULL;
     //tokenize
     cmd_args = strchr(user_command, '\n');
+    if (cmd_args)
+    {
+        *cmd_args = '\0';
+        //printf("%u\n", __LINE__);
+    }
+    cmd_args = strchr(user_command, ' ');
     if (cmd_args)
     {
         *cmd_args = '\0';
@@ -159,7 +169,7 @@ usr_cmd_parse_status parse_read(char *user_command, dumpb_command_t *command)
     {
         if ((isalpha(user_command[i]) == 0) && (isupper(user_command[i]) == 0))
         {
-            //printf("%u %x - bad\n", __LINE__, user_command[i]);
+            ERR_PRINT("Bad Command");
             return USR_CMD_STATUS_BAD_CMD;
         }
     }
@@ -167,42 +177,52 @@ usr_cmd_parse_status parse_read(char *user_command, dumpb_command_t *command)
 
     if (strcmp("quit", user_command) == 0)
     {
-        //printf("%u\n", __LINE__);
-        command->opcode = DUMP_CMD_GDBYE;
-        strncpy(command->user_command, "quit", DUMB_CMD_LEN);
-        strncpy(command->command, "GDBYE", DUMB_CMD_LEN);
-    } else
-        if (strcmp("create", user_command) == 0)
+        command->opcode = DUMB_CMD_GDBYE;
+        strcpy(command->user_command, "quit");
+        strcpy(command->command, "GDBYE");
+    } else if (strcmp("create", user_command) == 0)
     {
-        //return USR_CMD_STATUS_OK//DUMP_CMD_GREAT;
-    } else
-        if (strcmp("delete", user_command) == 0)
+        command->opcode = DUMB_CMD_CREAT;
+        DUMP_ARRAY(command, 32);
+        strcpy(command->command, "CREAT");
+        if (cmd_args)
+            strncpy(command->args, cmd_args, ARGS_LEN_MAX);
+    } else if (strcmp("delete", user_command) == 0)
     {
-        //return DUMP_CMD_DELBX
-    } else
-        if (strcmp("open", user_command) == 0)
+        command->opcode = DUMB_CMD_DELBX;
+        DUMP_ARRAY(command, 32);
+        strcpy(command->command, "DELBX");
+        if (cmd_args)
+            strncpy(command->args, cmd_args, ARGS_LEN_MAX);
+    } else if (strcmp("open", user_command) == 0)
     {
-        printf("open, which message box?\n");
-        //return DUMP_CMD_DELBX_OPNBX;
-    } else
-        if (strcmp("close", user_command) == 0)
+        command->opcode = DUMB_CMD_OPNBX;
+        DUMP_ARRAY(command, 32);
+        strcpy(command->command, "OPNBX");
+        if (cmd_args)
+            strncpy(command->args, cmd_args, ARGS_LEN_MAX);
+    } else if (strcmp("close", user_command) == 0)
     {
-        //return DUMP_CMD_DELBX_CLSBX;
-    } else
-        if (strcmp("next", user_command) == 0)
+        command->opcode = DUMB_CMD_CLSBX;
+        DUMP_ARRAY(command, 32);
+        strcpy(command->command, "CLSBX");
+        if (cmd_args)
+            strncpy(command->args, cmd_args, ARGS_LEN_MAX);
+    } else if (strcmp("next", user_command) == 0)
     {
         //return DUMP_CMD_DELBX_NXTMG";
-    } else
-        if (strcmp("put", user_command) == 0)
+    } else if (strcmp("put", user_command) == 0)
     {
         //return "PUTMG";
-    } else
-        if (strcmp("help", user_command) == 0)
+    } else if (strcmp("help", user_command) == 0)
     {
         printf("I am here - > HELP");
         print_help_menu();
     } else
+    {
+        ERR_PRINT("Bad Command");
         return USR_CMD_STATUS_BAD_CMD;
+    }
     return USR_CMD_STATUS_OK;
 }
 
@@ -222,8 +242,8 @@ void print_help_menu()
     printf("\t8. help - will show main manue\n");
 }
 
-int send_cmd_to_server(dumpb_command_t *command, int sockfd);
-int read_from_server(dumpb_command_t *command, int sockfd, char *buffer);
+int send_cmd_to_server(dumb_command_t *command, int sockfd);
+int read_from_server(dumb_command_t *command, int sockfd, char *buffer);
 
 int main(int argc, char *argv[])
 {
@@ -275,8 +295,8 @@ int main(int argc, char *argv[])
         error("Failed to connect. Exit Now\n");
     }
 
-    dumpb_command_t command = {0};
-    command.opcode = DUMP_CMD_HELLO;
+    dumb_command_t command = {0};
+    command.opcode = DUMB_CMD_HELLO;
     send_to_server(&command, sockfd, hello);
     bzero(buffer, 255);
     read_from_server(&command, sockfd, buffer);
@@ -289,9 +309,13 @@ int main(int argc, char *argv[])
         printf("%s:> ", command.user_command);
         bzero(buffer, 255);
         char *user_cmd = fgets(buffer, 255, stdin);
+        if (*user_cmd == '\n')
+        {
+            continue;
+        }
         usr_cmd_parse_status status = parse_read(user_cmd, &command);
 
-        //printf("status %u\n", status);
+        //printf("status %u opcode: %u\n", status, command.opcode);
 
         if (USR_CMD_STATUS_BAD_CMD == status)
         {
@@ -303,31 +327,34 @@ int main(int argc, char *argv[])
         {
             switch (command.opcode)
             {
-            case DUMP_CMD_HELLO:
+            case DUMB_CMD_HELLO:
                 printf("Hello State\n");
                 break;
-            case DUMP_CMD_GDBYE:
+            case DUMB_CMD_GDBYE:
             {
                 send_cmd_to_server(&command, sockfd);
                 bzero(buffer, 255);
-                if(read_from_server(&command, sockfd, buffer) > 0)
+                if (read_from_server(&command, sockfd, buffer) > 0)
                 {
                     printf("ERROR: Unexpected Server behavior. Closing....\n");
                     exit(1);
                 }
             }
                 break;
-            case DUMP_CMD_CREAT:
+            case DUMB_CMD_CREAT:
+            case DUMB_CMD_DELBX:
+            case DUMB_CMD_OPNBX:
+            case DUMB_CMD_CLSBX:
+            {
+                send_cmd_to_server(&command, sockfd);
+                bzero(buffer, 255);
+                read_from_server(&command, sockfd, buffer);
+                printf("%s\n", buffer);
+            }
                 break;
-            case DUMP_CMD_DELBX:
+            case DUMB_CMD_NXTMG:
                 break;
-            case DUMP_CMD_OPNBX:
-                break;
-            case DUMP_CMD_CLSBX:
-                break;
-            case DUMP_CMD_NXTMG:
-                break;
-            case DUMP_CMD_PUTMG:
+            case DUMB_CMD_PUTMG:
                 break;
             }
 
@@ -368,7 +395,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-int send_to_server(dumpb_command_t *command, int sockfd, char *buffer)
+int send_to_server(dumb_command_t *command, int sockfd, char *buffer)
 {
     int n = write(sockfd, buffer, strlen(buffer));
     //printf("%i bytes sent to server\n", n);
@@ -379,7 +406,7 @@ int send_to_server(dumpb_command_t *command, int sockfd, char *buffer)
     return n;
 }
 
-int send_cmd_to_server(dumpb_command_t *command, int sockfd)
+int send_cmd_to_server(dumb_command_t *command, int sockfd)
 {
     char cmd_buffer[128] = {0};
     int n = sprintf(cmd_buffer, "%s", command->command);
@@ -388,7 +415,7 @@ int send_cmd_to_server(dumpb_command_t *command, int sockfd)
     return send_to_server(command, sockfd, cmd_buffer);
 }
 
-int read_from_server(dumpb_command_t *command, int sockfd, char *buffer)
+int read_from_server(dumb_command_t *command, int sockfd, char *buffer)
 {
     //read massages from the server/ holds massages back from the server...
     int n = read(sockfd, buffer, 255);

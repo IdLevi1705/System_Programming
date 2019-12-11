@@ -383,7 +383,7 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
 void print_help_menu()
 {
 
-    printf("\t----MAIN MENUE-----\n");
+    printf("\t----MAIN MENU-----\n");
     printf("\tPlease use one of the following commands:\n");
     printf("\t1. quit   - stop session and exit the program\n");
     printf("\t2. create - Create new massage box on the server\n");
@@ -392,7 +392,7 @@ void print_help_menu()
     printf("\t5. close  - close current massage box\n");
     printf("\t6. next   - Get the next massage from the current massage box\n");
     printf("\t7. put    - Put a message in to the currently open message box\n");
-    printf("\t8. help   - will show main menue\n");
+    printf("\t8. help   - will show main menu\n");
 }
 
 int send_to_server(dumb_command_t *command, int sockfd, char *buffer);

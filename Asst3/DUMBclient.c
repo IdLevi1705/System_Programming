@@ -89,6 +89,9 @@ typedef enum
     DUMB_CMD_PUTMG
 } dumb_cmd_opcode;
 
+dumb_cmd_opcode current_mode = DUMB_CMD_HELLO;
+char open_mailbox[25];
+
 typedef struct dumb_command
 {
     dumb_cmd_opcode opcode;
@@ -146,7 +149,7 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     int cmd_len = strlen(user_command);
     if(cmd_len > (USER_CMD_LEN_MAX + ARGS_LEN_MAX) || cmd_len < USER_CMD_LEN_MIN)
     {
-        ERR_PRINT("Bad Command");
+        ERR_PRINT("That is not a command, for a command list enter 'help'.");
         return USR_CMD_STATUS_BAD_CMD;
     }
     char *cmd_args = NULL;
@@ -155,13 +158,13 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     {
         *cmd_args = '\0';
     }
-    cmd_args = strchr(user_command, ' ');
-    if(cmd_args)
-    {
-        *cmd_args = '\0';
-        cmd_args++;
-        cmd_args = skip_leading_spaces(cmd_args);
-    }
+//    cmd_args = strchr(user_command, ' ');
+//    if(cmd_args)
+//    {
+//        *cmd_args = '\0';
+//        cmd_args++;
+//        cmd_args = skip_leading_spaces(cmd_args);
+//    }
     // check until reach end of the cmd string
     // we put \0 during initial parsing between command and args
     int i = 0;
@@ -170,7 +173,7 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     {
         if((isalpha(user_command[i]) == 0) && (isupper(user_command[i]) == 0))
         {
-            ERR_PRINT("Bad Command");
+            ERR_PRINT("That is not a command, for a command list enter 'help'.");
             return USR_CMD_STATUS_BAD_CMD;
         }
     }
@@ -182,6 +185,11 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     }
     else if(strcmp("create", user_command) == 0)
     {
+        if(current_mode == DUMB_CMD_OPNBX)
+        {
+            printf("Error: Only 'put', 'next' and 'close' commands are accepted in 'OPEN' mode");
+            return USR_CMD_STATUS_BAD_CMD;
+        }
         char buffer[READ_BUFFER_LEN];
         printf("Okay, create which message box?\n");
         do
@@ -212,6 +220,12 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     }
     else if(strcmp("delete", user_command) == 0)
     {
+        if(current_mode == DUMB_CMD_OPNBX)
+        {
+            printf("Error: Only 'put', 'next' and 'close' commands are accepted in 'OPEN' mode");
+            return USR_CMD_STATUS_BAD_CMD;
+        }
+
         char buffer[READ_BUFFER_LEN];
         printf("Okay, delete which message box?\n");
         do
@@ -242,6 +256,12 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     }
     else if(strcmp("open", user_command) == 0)
     {
+        if(current_mode == DUMB_CMD_OPNBX)
+        {
+            printf("Error: Only 'put', 'next' and 'close' commands are accepted in 'OPEN' mode");
+            return USR_CMD_STATUS_BAD_CMD;
+        }
+
         char buffer[READ_BUFFER_LEN];
         printf("Okay, open which message box?\n");
         do
@@ -268,38 +288,41 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
         DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "OPNBX");
         if(cmd_args)
+        {
             strncpy(command->args, cmd_args, ARGS_LEN_MAX);
+            strcpy(open_mailbox, cmd_args);
+        }
     }
     else if(strcmp("close", user_command) == 0)
     {
-        char buffer[READ_BUFFER_LEN];
-        printf("Okay, close which message box?\n");
-        do
-        {
-            printf("close:> ");
-            char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
-            if(*user_cmd == '\n')
-            {
-                continue;
-            }
-            cmd_args = user_cmd;
-            char *ending_space = strchr(cmd_args, '\n');
-            if(ending_space)
-                *ending_space = 0;
-
-            int len = strlen(user_cmd);
-            if(5 > len || len > 25)
-            {
-                printf("[%u] Error: Command was unsuccessful, MB len should be 5 to 25 letter long. Actual: %d\n", __LINE__, len);
-                return USR_CMD_STATUS_BAD_CMD;
-            }
-            break;
-        } while(1);
+//        char buffer[READ_BUFFER_LEN];
+//        printf("Okay, close which message box?\n");
+//        do
+//        {
+//            printf("close:> ");
+//            char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
+//            if(*user_cmd == '\n')
+//            {
+//                continue;
+//            }
+//            cmd_args = user_cmd;
+//            char *ending_space = strchr(user_command, '\n');
+//            if(ending_space)
+//                *ending_space = 0;
+//            int len = strlen(user_cmd);
+//            if(5 > len || len > 25)
+//            {
+//                printf("[%u] Error: Command was unsuccessful, MB len should be 5 to 25 letter long. Actual: %d\n", __LINE__, len);
+//                return USR_CMD_STATUS_BAD_CMD;
+//            }
+        //            break;
+        //        } while(1);
         command->opcode = DUMB_CMD_CLSBX;
         DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "CLSBX");
         if(cmd_args)
-            strncpy(command->args, cmd_args, ARGS_LEN_MAX);
+            strncpy(command->args, open_mailbox, ARGS_LEN_MAX);
+        open_mailbox[0] = 0;
     }
     else if(strcmp("next", user_command) == 0)
     {
@@ -323,7 +346,7 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
             int len = strlen(user_cmd);
             if(len > 255)
             {
-                ERR_PRINT("Command was unsuccessful, Message len shouldn't exceed 255 ascii letters\n");
+                ERR_PRINT("Command was unsuccessful, Message len shouldn't exceed 255 ASCII letters\n");
                 return USR_CMD_STATUS_BAD_CMD;
             }
             cmd_args = user_cmd;
@@ -432,11 +455,10 @@ int main(int argc, char *argv[])
     read_from_server(&command, sockfd, buffer);
     printf("%s\n", buffer);
 
-    //talk to the server until user types 'close'
     while(1)
     {
         //clean buffer
-        printf("%s:> ", command.user_command);
+        printf("%s:> ", open_mailbox);
         bzero(buffer, READ_BUFFER_LEN);
         char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
         if(*user_cmd == '\n')

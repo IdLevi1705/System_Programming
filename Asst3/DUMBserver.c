@@ -86,7 +86,7 @@ void dump_array(char* buff, size_t len)
     printf("\n");
 }
 
-#define DUMP_ARRAY(a,b) //dump_array(a,b);
+#define DUMP_ARRAY(a,b) dump_array(a,b);
 
 typedef enum
 {

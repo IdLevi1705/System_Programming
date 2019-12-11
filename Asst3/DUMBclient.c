@@ -158,13 +158,13 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     {
         *cmd_args = '\0';
     }
-//    cmd_args = strchr(user_command, ' ');
-//    if(cmd_args)
-//    {
-//        *cmd_args = '\0';
-//        cmd_args++;
-//        cmd_args = skip_leading_spaces(cmd_args);
-//    }
+    //    cmd_args = strchr(user_command, ' ');
+    //    if(cmd_args)
+    //    {
+    //        *cmd_args = '\0';
+    //        cmd_args++;
+    //        cmd_args = skip_leading_spaces(cmd_args);
+    //    }
     // check until reach end of the cmd string
     // we put \0 during initial parsing between command and args
     int i = 0;
@@ -295,26 +295,31 @@ usr_cmd_parse_status parse_read(char *user_command, dumb_command_t *command)
     }
     else if(strcmp("close", user_command) == 0)
     {
-//        char buffer[READ_BUFFER_LEN];
-//        printf("Okay, close which message box?\n");
-//        do
-//        {
-//            printf("close:> ");
-//            char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
-//            if(*user_cmd == '\n')
-//            {
-//                continue;
-//            }
-//            cmd_args = user_cmd;
-//            char *ending_space = strchr(user_command, '\n');
-//            if(ending_space)
-//                *ending_space = 0;
-//            int len = strlen(user_cmd);
-//            if(5 > len || len > 25)
-//            {
-//                printf("[%u] Error: Command was unsuccessful, MB len should be 5 to 25 letter long. Actual: %d\n", __LINE__, len);
-//                return USR_CMD_STATUS_BAD_CMD;
-//            }
+        if(current_mode != DUMB_CMD_OPNBX)
+        {
+            printf("Error: Nothing to be closed.\n");
+            return USR_CMD_STATUS_BAD_CMD;
+        }
+        //        char buffer[READ_BUFFER_LEN];
+        //        printf("Okay, close which message box?\n");
+        //        do
+        //        {
+        //            printf("close:> ");
+        //            char *user_cmd = fgets(buffer, READ_BUFFER_LEN, stdin);
+        //            if(*user_cmd == '\n')
+        //            {
+        //                continue;
+        //            }
+        //            cmd_args = user_cmd;
+        //            char *ending_space = strchr(user_command, '\n');
+        //            if(ending_space)
+        //                *ending_space = 0;
+        //            int len = strlen(user_cmd);
+        //            if(5 > len || len > 25)
+        //            {
+        //                printf("[%u] Error: Command was unsuccessful, MB len should be 5 to 25 letter long. Actual: %d\n", __LINE__, len);
+        //                return USR_CMD_STATUS_BAD_CMD;
+        //            }
         //            break;
         //        } while(1);
         command->opcode = DUMB_CMD_CLSBX;

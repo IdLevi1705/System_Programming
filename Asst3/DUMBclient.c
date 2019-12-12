@@ -308,8 +308,7 @@ parse_read(char *user_command, dumb_command_t *command)
         current_mode = command->opcode = DUMB_CMD_CLSBX;
         DUMP_ARRAY((char*) command, 32);
         strcpy(command->command, "CLSBX");
-        if (cmd_args)
-            strncpy(command->args, open_mailbox, ARGS_LEN_MAX);
+        strncpy(command->args, open_mailbox, ARGS_LEN_MAX);
         open_mailbox[0] = 0;
     }
     else if (strcmp("next", user_command) == 0)
